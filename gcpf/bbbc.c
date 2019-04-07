@@ -8,16 +8,20 @@ long Conversion(char *time)
 {
 	long t;
 	long a, b, c;
+	char *p;
 	*(strchr(time, ':')) = ' ';
-	*(strchr(time, '.')) = ' ';
+	if((p = strchr(time, '.')) != NULL)
+		*p = ' ';
+	else
+		strcat(time, " 0");
 	sscanf(time, "%ld%ld%ld", &a, &b, &c);
 	t = c*10+b*1000+a*60*1000;
 	return t;
 }
 
-PNODE DownloadIrc()
+PNODE DownloadIrc(char *bc)
 {
-	FILE *fp = fopen("qhc.lrc", "r");
+	FILE *fp = fopen(bc, "r");
 	if(fp == NULL)
 	return 0;
     PNODE head = CreateList();
@@ -25,13 +29,20 @@ PNODE DownloadIrc()
     char lyrics[60];
     char buff[150];
     int i;
-    for(i = 0;i < 3;i++)
+    fgets(buff, 150, fp);
+    char *lp = strchr(buff, ']');
+
+    while(*(lp+1) == '\r' || *(lp+1) == '\n')
     {
-    	fgets(buff, 60, fp);
     	printf("%s", buff);
+    	fgets(buff, 150, fp);
+        lp = strchr(buff, ']');
     }
+    fseek(fp, -(strlen(buff)), SEEK_CUR);
     while(fgets(buff, 150, fp) != NULL)
     {
+    	if(buff[0] != '[')
+    		continue;
     	char *pf = buff;
     	buff[strlen(buff) - 1] = '\0';
     	char *p;
@@ -124,6 +135,8 @@ char *FindList(PNODE head, long time)
 
 void displaylist(PNODE head)
 {
+	printf("%s\n", head->lyrics);
+	printf("%ld\n", head->time);
 	PNODE p = head->next;
 
 	while(p != head)

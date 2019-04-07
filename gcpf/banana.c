@@ -6,9 +6,15 @@
 #include <unistd.h>
 #include "bbbc.h"
 
-int main()
+int main(int argc, char **argv)
 {
-	PNODE head = DownloadIrc();
+	if(argc == 1)
+	{
+		printf("请指定歌词文件\n");
+		return 0;
+	}
+	PNODE head = DownloadIrc(argv[1]);
+
 
 	printf("insert sucess!\n");
 	long time = 0;
