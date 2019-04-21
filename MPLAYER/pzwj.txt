@@ -1,0 +1,9 @@
+num=10
+musicname=/home/chenbiao/mywork/4.5/mp3/mhxy2.mp3
+time=20
+playmode=1
+OnOff=1
+OUTDO=1
+IRCDO=1
+PAUSE=0
+musicnumber=15
