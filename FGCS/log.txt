@@ -1,0 +1,19 @@
+ protocalV1>>>slot_SendLoginMsg
+ UserListView>>>chenbiao-Rev-1-0
+ UserListView>>>chenbiao-Rev-1-0,192.168.43.142
+ protocalV1>>>New User[IPMSG_BR_ENTRY]:chenbiao-Rev-1-0
+ UserListView>>>chenbiao-Rev-1-0
+ UserListView>>>chenbiao-Rev-1-0,192.168.43.142
+ protocalV1>>>Ansentry User[IPMSG_ANSENTRY]:chenbiao-Rev-1-0
+ protocalV1>>>slot_SendLoginMsg
+ UserListView>>>chenbiao-Rev-1-0
+ UserListView>>>chenbiao-Rev-1-0,192.168.43.142
+ protocalV1>>>New User[IPMSG_BR_ENTRY]:chenbiao-Rev-1-0
+ UserListView>>>chenbiao-Rev-1-0
+ UserListView>>>chenbiao-Rev-1-0,192.168.43.142
+ protocalV1>>>Ansentry User[IPMSG_ANSENTRY]:chenbiao-Rev-1-0
+ protocalV1>>>slot_SendLoginMsg
+UDPNetwork###7Unable to send a message
+ Core>>>7Unable to send a message
+ protocalV1>>>slot_SendLanShareQueryMsg
+ protocalV1>>>Get Message [IPMSG_RECVMSG] from:chenbiao-Rev-1-0

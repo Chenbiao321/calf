@@ -1,0 +1,12 @@
+Bb=5.1.182010
+pack_id=80023
+Administrator=chenbiao
+DESKTOP_TI6DHJ5=ubuntu
+Nc=chenbiao
+Qz=WorkGroup
+MAC=00:26:9e:f6:c3:17
+Ph=110
+Em=111111111
+IP=192.168.1.110
+pix=1
+Gx=how are you?
