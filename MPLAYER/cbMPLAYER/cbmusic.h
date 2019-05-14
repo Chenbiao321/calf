@@ -42,6 +42,8 @@ extern PNODE CreateList();
 
 extern void InsertList(PNODE head, long time, char *lyrics);
 
+extern void playmusic(PPZWJ chuSi, void *gg);
+
 extern void PutLyrics(long time);
 
 extern char *FindList(PNODE head, long time);
@@ -93,5 +95,7 @@ extern char *Changetolrc(PPZWJ Chusi, char *path);
 extern void Firstpzwj(FILE *pf);
 
 extern void *DomusicMSG(void *agc);
+
+extern void PlayerIdmusic(PPZWJ chuSi,PLIST list,int id);
 
 #endif

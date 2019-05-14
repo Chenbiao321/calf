@@ -104,6 +104,8 @@ int analyse(char *buff, char *str)
 		return 11;
 	else if(strcmp(buff, "help\n") == 0)
 		return 27;
+	else if(strcmp(buff, "play\n") == 0)
+		return 33;
 	
 	else
 		return 0;
@@ -113,8 +115,8 @@ int analyse(char *buff, char *str)
 
 int main()
 {
-	//getchar();
-	signal(SIGPIPE, SIG_IGN);
+	
+	signal(SIGPIPE, fun1);
     signal(SIGCHLD, fun);
 
     srand(time(NULL));
@@ -142,74 +144,40 @@ int main()
 	memcpy(addr, (void *)ChuSi, sizeof(PZWJ));
 	PPZWJ chuSi = (PPZWJ)addr;
 	printf("wlecome use mplayer!\n");
-	printf("即将播放：\n");
-	printf("music_id = %d\n", ChuSi->music_id);
-	printf("musicname = %s\n", ChuSi->musicname);
-	printf("time = %ld\n", ChuSi->time);
-	printf("playmode = %d\n", ChuSi->playmode);
-	
-
-	printf("press a key to goon\n");
-	getchar();
 
 	char buff[100];
 	char str[80];
 
-	if(access("fifo", F_OK) < 0)
-	{
-		mkfifo("fifo", 0666);
-	}
-
-	if(access("timefifo", F_OK) < 0)
-	{
-		mkfifo("timefifo", 0666);
-	}
-
 	int df[2];
 	pipe(df);
 
-	pid_t pid = vfork();
-	if(pid < 0)
-		return 0;
-
-	else if(pid == 0)
-	{
-		signal(SIGPIPE, fun1);
-		sleep(2);
-		close(df[0]);
-        dup2(df[1], 1);
-		execl("/usr/bin/mplayer", "mplayer", "-slave", "-quiet", "-input", "file=./fifo", ChuSi->musicname, NULL);
-	    printf("xxxxxxxxxxxxxxx\n");
-	    close(df[1]);
-	    printf("aaaaaaaaaaaaaaa\n");
-
-	    exit(12);
-	}
-
-	else
-	{
-		PlayChusimusic(chuSi);
-
-        	int set;
+    int set;
             
-        	pthread_t tid;
-			pthread_create(&tid, NULL, GetmusicMSG, chuSi);
-
-			pthread_t tid2;
-			pthread_create(&tid2, NULL, DomusicMSG, df);
-
-			pthread_t tid1;
-			pthread_create(&tid1, NULL, PlayLyrics, chuSi);
+    
 		while(1)
 		{
 			memset(buff, 0, sizeof(buff));
 			set = read(0, buff, sizeof(buff));
-			//printf("3333333\n");
+			
 			printf("set = %d, buff = %s", set, buff);
 			char cmd[100] = {0};
 			char path[80] = {0};
 		    switch(analyse(buff, str))
 		    {
+		    	case 33:
+		    	{
+		    		playmusic(chuSi, df);
+		    		
+            
+        			pthread_t tid;
+					pthread_create(&tid, NULL, GetmusicMSG, chuSi);
+
+					pthread_t tid2;
+					pthread_create(&tid2, NULL, DomusicMSG, df);
+
+					pthread_t tid1;
+					pthread_create(&tid1, NULL, PlayLyrics, chuSi);
+		    	}
 				case 0:
 				{
 					printf("can not understand\n");
@@ -223,41 +191,28 @@ int main()
 				break;
 				case 1:
 				{
-					--(chuSi->music_id);
-                    FindMusicname(list, path, &(chuSi->music_id));
-					sprintf(cmd, "loadfile %s\n", path);
-					printf("%s\n", path);
-					strcpy(chuSi->musicname, path);
-					set = strlen(cmd);
-					Sendcmd(cmd, set);
-					chuSi->OUTDO = 1;
-					chuSi->IRCDO = 1;
+					--chuSi->music_id;
+					PlayerIdmusic(chuSi, list, chuSi->music_id);
 				}
 				break;
 				case 2:
 				{
 					chuSi->music_id = atoi(str);
-					FindMusicname(list, path, &(chuSi->music_id));
-					sprintf(cmd, "loadfile %s\n", path);
-					printf("%s\n", path);
-					strcpy(chuSi->musicname, path);
-					set = strlen(cmd);
-					Sendcmd(cmd, set);
-					chuSi->OUTDO = 1;
-					chuSi->IRCDO = 1;
+					PlayerIdmusic(chuSi, list, chuSi->music_id);
 				}
 				break;
 				case 3:
 				{
-					++(chuSi->music_id);
-					FindMusicname(list, path, &(chuSi->music_id));
-					sprintf(cmd, "loadfile %s\n", path);
-					printf("%s\n", path);
-					strcpy(chuSi->musicname, path);
-					set = strlen(cmd);
-					Sendcmd(cmd, set);
-					chuSi->OUTDO = 1;
-					chuSi->IRCDO = 1;
+					if(chuSi->playmode == 2)
+					{
+                        chuSi->music_id = rand()%(chuSi->musicnumber);
+					}
+					else
+					{
+						++chuSi->music_id;
+					}
+                    
+					PlayerIdmusic(chuSi, list, chuSi->music_id);
 				}
 				break;
 				case 4:
@@ -309,8 +264,6 @@ int main()
                     Savepzwj(chuSi);
 					printf("save success\n");
 					
-					close(df[0]);
-					
 					SaveGedang(list);
 					ClearGedang(list);
 					free(list);
@@ -334,25 +287,6 @@ int main()
 				case 8:Help();
 				break;
 				case 9:DisplayGedang(list);
-				break;
-				
-				case 44:
-				{
-					PNODE head = DownloadIrc(str);
-					printf("insert sucess!\n");
-					printf("press a key to go on\n");
-					getchar();
-					long time = 0;
-					while(time <= head->piror->time)
-					{
-	   					char *p = FindList(head, time);
-	    				if(p != NULL)
-	    				printf("%s\n", p);
-	    				usleep(10000);
-	    				time+=10;
-					}
-					displaylist(head);
-				}
 				break;
 				case 21:InsertGedang(list, str);
 				break;
@@ -383,6 +317,6 @@ int main()
 		}
         
 		
-	}
+	
 	return 0;
 }

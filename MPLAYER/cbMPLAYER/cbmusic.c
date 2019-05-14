@@ -25,7 +25,7 @@ long Conversion(char *time)
 	else
 		strcat(time, " 0");
 	sscanf(time, "%ld%ld%ld", &a, &b, &c);
-	t = b*1000+a*60*1000;
+	t =(c/20)*200+b*1000+a*60*1000;
 	return t;
 }
 
@@ -334,6 +334,7 @@ PLIST DownloadGedang(PPZWJ Chusi)
 
 void Help()
 {
+	printf("开始运行播放：play\n");
 	printf("添加歌曲：addmusic 文件绝对路径\n");
 	printf("添加歌曲：addmusicdir 目录的绝对路径\n");
 	printf("退出：quit\n");
@@ -452,13 +453,9 @@ PPZWJ Downloadpzwj()
 
 void Sendcmd(char *buff, int set)
 {
-	int std = dup(1);
-	int fd = open("fifo", O_WRONLY);
-	//printf("Insert success\n");
-	dup2(fd, 1);
+    int fd = open("fifo", O_WRONLY);
 	write(fd, buff, set);
-	dup2(std, 1);
-	close(fd);	
+	close(fd);
 }
 
 
@@ -489,8 +486,26 @@ void FindMusicname(PLIST list, char *path, int *music_id)
 	} 
 }
 
+void PlayerIdmusic(PPZWJ chuSi,PLIST list,int id)
+{
+	char cmd[100] = {0};
+	char path[80] = {0};
+	chuSi->PAUSE = 1;
+	sleep(1);
+    FindMusicname(list, path, &id);
+    sprintf(cmd, "loadfile %s\n", path);
+	printf("%s\n", path);
+	strcpy(chuSi->musicname, path);
+	int set = strlen(cmd);
+	Sendcmd(cmd, set);
+	chuSi->OUTDO = 1;
+	chuSi->IRCDO = 1;
+	chuSi->PAUSE = 0;
+}
+
 void *GetmusicMSG(void *arg)
 {
+	signal(SIGPIPE, fun1);
 	char cmd[20];
     PPZWJ Chusi = (PPZWJ)arg;
     
@@ -508,11 +523,12 @@ void *GetmusicMSG(void *arg)
 				sprintf(cmd, "get_time_length\n");
 				int set = strlen(cmd);
 				Sendcmd(cmd, set);
+				continue;
 			}	
 			sprintf(cmd, "get_time_pos\n");
 			int set = strlen(cmd);
 			Sendcmd(cmd, set);
-			sleep(1);
+			usleep(50000);
 		}
 	}
 	printf("off success\n");
@@ -596,17 +612,19 @@ void fun()
 
 void fun1()
 {
-	printf("1111111\n");
+	printf("2222222222222222\n");
 }
 
 void *PlayLyrics(void *arg)
 {
+	long k;
 	int fd1 = open("timefifo", O_RDONLY);
 	PPZWJ Chusi = (PPZWJ)arg;
     
     char time[20];
     long ltime = 0;
     PNODE head = NULL;
+    char *q;
     char *p;
     while(1)
     {
@@ -624,7 +642,7 @@ void *PlayLyrics(void *arg)
     		ClearList(head);
     		char path[100] = {0};
     		Changetolrc(Chusi, path);
-    		printf("1111111\n");
+    		
     		head = DownloadIrc(path);
     		if(head == NULL)
     			head = CreateList();
@@ -635,12 +653,19 @@ void *PlayLyrics(void *arg)
     
     	if(read(fd1, time, sizeof(time)) > 0)
     	{
-    		//time[strlen(time)-2] = time[strlen(time)-1];
-    		//time[strlen(time)-1] = '\0';
-    		ltime = (long)(atoi(time)*1000);
+    		q = strchr(time, '.');
+    		*q = *(q+1);
+    		*(q+1) = '\0';
+    		ltime = (long)(atoi(time)/2*2*100);
+
+    		if(k == ltime)
+    		{
+    			continue;
+    		}
     		//printf("%ld\n" ,ltime);
 		
 	   		char *p = FindList(head, ltime);
+	   	    k = ltime;
 	    	if(p != NULL)
 	    	printf("%s\n", p);
 		}
@@ -666,47 +691,55 @@ void *DomusicMSG(void *agc)
 			id = shmget(key, sizeof(PZWJ)+10, IPC_CREAT | 0666);
 			}
 			void *addr = shmat(id, NULL, 0);
-
-        	//PLIST list = (PLIST)agc;
         	
         	PPZWJ Chusi = (PPZWJ)addr;
         	Chusi->musicnumber = Chusi->connect->data;
         	close(df[1]);
         	char MSG[40];
         	char *p;
+        	char *q;
         	int set;
         	char length[10] = {0};
         	int fd1 = open("timefifo", O_WRONLY);
         	
         	while((set = read(df[0], MSG, sizeof(MSG))) > 0)
         	{ 		
-        		//printf("%s", MSG);
+        		
         		MSG[strlen(MSG)-1] = '\0';
         		if(Chusi->OUTDO)
         		{
 
-        		if(((p = strchr(MSG, '=')) != NULL)&&(strchr(MSG, '.') != NULL))
-                {
-                	*p = '\0';
-                	if(strcmp(MSG, "ANS_LENGTH") == 0)
+        			if(((p = strchr(MSG, '=')) != NULL))
                 	{
-                	    printf("歌曲总时长为:%s, %d\n", p+1, Chusi->OUTDO);
-                	    strcpy(length, p+1);
-                	    Chusi->OUTDO = 0;
+                		*p = '\0';
+                		if(strcmp(MSG, "ANS_LENGTH") == 0)
+                		{
+                	   	 	printf("歌曲总时长为:%s, %d\n", p+1, Chusi->OUTDO);
+                	    	strcpy(length, p+1);
+                	    	Chusi->OUTDO = 0;
+                		}
                 	}
-                }
-                memset(MSG, 0, sizeof(MSG));
-                //printf("11111\n");
-                continue;
+                	memset(MSG, 0, sizeof(MSG));
+                	continue;
                 }
                 if((p = strchr(MSG, '=')) != NULL)
                 {
+                	*p = '\0';
+                }
+                else
+                {
+                	continue;
+                }
+                if((strcmp(MSG, "ANS_TIME_POSITION") == 0)&&(strchr(p+1, 'A') == NULL))
+                {
                 	//printf("%s\n", p+1);
-                	//printf("%s\n", length);
+                	
                 	Chusi->time = atoi(p+1);
                     write(fd1, p+1, strlen(p+1));
-                    if(atoi(p+1) > (atoi(length)-5))
+                    if(atoi(p+1) > (atoi(length)-3))
                 	{
+                		Chusi->PAUSE = 1;
+                		sleep(1);
                 		Chusi->OUTDO = 1;
                         Chusi->IRCDO = 1;
                 		char cmd[100] = {0};
@@ -726,7 +759,8 @@ void *DomusicMSG(void *agc)
 						strcpy(Chusi->musicname, path);
 						set = strlen(cmd);
 						Sendcmd(cmd, set);
-						//sleep(1);
+						Chusi->PAUSE = 0;
+						
 						
                 	}
                 }
@@ -765,6 +799,57 @@ char *Changetolrc(PPZWJ Chusi, char *path)
 	printf("%s\n", path);
     
 	return path;
+}
+
+
+void playmusic(PPZWJ chuSi, void *gg)
+{
+	int *df = (int *)gg;
+	printf("即将播放：\n");
+	printf("music_id = %d\n", chuSi->music_id);
+	printf("musicname = %s\n", chuSi->musicname);
+	printf("time = %ld\n", chuSi->time);
+	printf("playmode = %d\n", chuSi->playmode);
+	
+
+	printf("press a key to goon\n");
+	getchar();
+
+	char buff[100];
+	char str[80];
+
+	if(access("fifo", F_OK) < 0)
+	{
+		mkfifo("fifo", 0666);
+	}
+
+	if(access("timefifo", F_OK) < 0)
+	{
+		mkfifo("timefifo", 0666);
+	}
+
+
+	pid_t pid = vfork();
+	if(pid < 0)
+		return;
+
+	else if(pid == 0)
+	{
+		signal(SIGPIPE, fun1);
+		sleep(2);
+		close(df[0]);
+        dup2(df[1], 1);
+		execl("/usr/bin/mplayer", "mplayer", "-slave", "-quiet", "-input", "file=./fifo", chuSi->musicname, NULL);
+	    close(df[1]);	   
+	    exit(12);
+	}
+
+	else
+	{
+
+		PlayChusimusic(chuSi);
+		sleep(1);
+	}
 }
 
 
